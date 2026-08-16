@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HISTORY MASH</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #0d0f12;
+      --card-bg: #161920;
+      --accent: #ff3e3e;
+      --text: #f0f2f5;
+      --subtext: #8a94a6;
+      --border: #2a2f3a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      color: var(--subtext);
+      text-align: center;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+
+    .challenge-badge {
+      display: none;
+      background: rgba(255, 62, 62, 0.15);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.1s ease, opacity 0.2s ease;
+      text-align: center;
+      width: 100%;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .progress {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--subtext);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-choice {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card-choice:hover {
+      border-color: var(--subtext);
+    }
+
+    .card-choice .name {
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .card-choice .desc {
+      font-size: 0.85rem;
+      color: var(--subtext);
+      line-height: 1.4;
+    }
+
+    .vs-badge {
+      align-self: center;
+      font-size: 0.75rem;
+      font-weight: 900;
+      color: var(--subtext);
+      letter-spacing: 2px;
+    }
+
+    .result-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .result-subtitle {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--subtext);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .result-arch {
+      font-size: 2.2rem;
+      font-weight: 900;
+      margin: 8px 0 20px 0;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+
+    .world-stats-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: var(--subtext);
+    }
+
+    .stat-row strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .rarest-box {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+      text-align: center;
+    }
+
+    .rarest-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--subtext);
+      margin-bottom: 4px;
+    }
+
+    .rarest-value {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .stats-unavailable {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--subtext);
+      padding: 8px 0;
+      letter-spacing: 1px;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app">
+    <!-- START SCREEN -->
+    <div id="scrStart" class="screen active">
+      <h1>HISTORY MASH</h1>
+      <div id="challengeBadge" class="challenge-badge">CHALLENGE LINK ACCEPTED!</div>
+      <p class="sub">Pick history's figures. Reveal your archetype and alignment with the world.</p>
+      <button id="bStart" class="btn">START</button>
+    </div>
+
+    <!-- GAMEPLAY SCREEN -->
+    <div id="scrGame" class="screen">
+      <div id="gameProgress" class="progress">MATCH 1 / 7</div>
+      <div class="cards-container">
+        <div id="cardA" class="card-choice">
+          <div id="nameA" class="name">---</div>
+          <div id="descA" class="desc">---</div>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div id="cardB" class="card-choice">
+          <div id="nameB" class="name">---</div>
+          <div id="descB" class="desc">---</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT SCREEN -->
+    <div id="scrResult" class="screen">
+      <div class="result-card">
+        <div class="result-subtitle">YOUR HISTORICAL ARCHETYPE</div>
+        <div id="resArch" class="result-arch">THE REBEL</div>
+
+        <div id="worldStatsDisplay" class="world-stats-card">
+          <div class="stats-unavailable">LOADING WORLD STATS...</div>
+        </div>
+
+        <div class="action-buttons">
+          <button id="bShare" class="btn">SHARE ON X</button>
+          <button id="bRetry" class="btn btn-secondary">PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       SUPABASE CONFIGURATION
+       ========================================================================== */
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+    let supabase = null;
+    if (SUPABASE_URL && SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY" && typeof window.supabase !== 'undefined') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    /* ==========================================================================
+       CORE DATA & DICTIONARIES
+       ========================================================================== */
+    const P = {
+      p1:  { name: "Alexander the Great", desc: "Conquered the known world before 30." },
+      p2:  { name: "Julius Caesar", desc: "Transformed Rome from Republic to Empire." },
+      p3:  { name: "Cleopatra", desc: "Strategic ruler who navigated superpower politics." },
+      p4:  { name: "Napoleon Bonaparte", desc: "Military genius who reshaped European law." },
+      p5:  { name: "Joan of Arc", desc: "Peasant girl who led armies on divine vision." },
+      p6:  { name: "Winston Churchill", desc: "Stood firm against tyranny in wartime Britain." },
+      p7:  { name: "Abraham Lincoln", desc: "Preserved a nation and abolished slavery." },
+      p8:  { name: "Mahatma Gandhi", desc: "Felled an empire with non-violent resistance." },
+      p9:  { name: "Nelson Mandela", desc: "Dismantled apartheid through endurance and peace." },
+      p10: { name: "Martin Luther King Jr.", desc: "Dreamed of equality and sparked civil rights." },
+      p11: { name: "Leonardo da Vinci", desc: "Ultimate Renaissance thinker, painter, inventor." },
+      p12: { name: "Albert Einstein", desc: "Rewrote our understanding of space and time." },
+      p13: { name: "Isaac Newton", desc: "Unravelled gravity and universal physics laws." },
+      p14: { name: "Nikola Tesla", desc: "Visionary who electrified the modern world." },
+      p15: { name: "Thomas Edison", desc: "Practical inventor who commercialized progress." },
+      p16: { name: "Marie Curie", desc: "Pioneered radioactivity at supreme personal sacrifice." },
+      p17: { name: "Galileo Galilei", desc: "Defied doctrine to prove the Earth moves." },
+      p18: { name: "Socrates", desc: "Questioned everything, accepting death over silence." },
+      p19: { name: "Confucius", desc: "Framed social order and harmony across millennia." },
+      p20: { name: "Karl Marx", desc: "Critiqued capital and inspired global revolutions." },
+      p21: { name: "Ada Lovelace", desc: "Wrote the world's very first computer algorithm." },
+      p22: { name: "Steve Jobs", desc: "Merged technology and design to shift culture." },
+      p23: { name: "Genghis Khan", desc: "Connected East and West through brutal empire." },
+      p24: { name: "Queen Elizabeth I", desc: "Forged England's Golden Age in defiance." },
+      p25: { name: "Florence Nightingale", desc: "Revolutionized healthcare through data and discipline." },
+      p26: { name: "Harriet Tubman", desc: "Escaped slavery and guided hundreds to freedom." },
+      p27: { name: "Rosa Parks", desc: "Refused her seat, igniting a bus boycott." },
+      p28: { name: "Marcus Aurelius", desc: "Philosopher King who ruled Rome with Stoic discipline." }
+    };
+
+    const cardsData = [
+      { id: "c1",  a: "p1",  b: "p14", traitA: "ambition",   traitB: "innovation" },
+      { id: "c2",  a: "p8",  b: "p2",  traitA: "compassion", traitB: "authority" },
+      { id: "c3",  a: "p11", b: "p19", traitA: "intellect",  traitB: "order" },
+      { id: "c4",  a: "p5",  b: "p15", traitA: "rebellion",  traitB: "innovation" },
+      { id: "c5",  a: "p9",  b: "p4",  traitA: "freedom",    traitB: "ambition" },
+      { id: "c6",  a: "p12", b: "p6",  traitA: "intellect",  traitB: "authority" },
+      { id: "c7",  a: "p26", b: "p28", traitA: "freedom",    traitB: "order" },
+      { id: "c8",  a: "p17", b: "p7",  traitA: "rebellion",  traitB: "compassion" },
+      { id: "c9",  a: "p21", b: "p23", traitA: "innovation", traitB: "ambition" },
+      { id: "c10", a: "p10", b: "p13", traitA: "compassion", traitB: "intellect" },
+      { id: "c11", a: "p27", b: "p3",  traitA: "rebellion",  traitB: "authority" },
+      { id: "c12", a: "p25", b: "p24", traitA: "order",      traitB: "authority" },
+      { id: "c13", a: "p18", b: "p16", traitA: "rebellion",  traitB: "intellect" },
+      { id: "c14", a: "p22", b: "p20", traitA: "innovation", traitB: "rebellion" }
+    ];
+
+    const TRAIT_TO_ARCH = {
+      rebellion:  "THE REBEL",
+      intellect:  "THE VISIONARY",
+      authority:  "THE STRATEGIST",
+      compassion: "THE HUMANIST",
+      innovation: "THE BUILDER",
+      freedom:    "THE LIBERATOR",
+      ambition:   "THE CONQUEROR",
+      order:      "THE ARCHITECT"
+    };
+
+    const AI_PERSONAS = [
+      { name: "mainstream",   weights: { innovation: 1.2, authority: 1.1, intellect: 1.0, compassion: 1.0, rebellion: 0.8, freedom: 0.9, ambition: 1.0, order: 1.0 } },
+      { name: "intellectual", weights: { intellect: 1.8, order: 1.4, innovation: 1.3, authority: 0.9, rebellion: 0.7, compassion: 0.8, freedom: 0.8, ambition: 0.7 } },
+      { name: "emotional",    weights: { compassion: 1.9, freedom: 1.5, rebellion: 1.2, intellect: 0.7, authority: 0.6, ambition: 0.6, order: 0.7, innovation: 0.9 } },
+      { name: "contrarian",   weights: { rebellion: 1.9, freedom: 1.6, ambition: 1.3, authority: 0.5, order: 0.5, intellect: 1.1, compassion: 0.8, innovation: 1.0 } },
+      { name: "achievement",  weights: { ambition: 1.8, authority: 1.5, innovation: 1.4, order: 1.1, compassion: 0.6, rebellion: 0.8, freedom: 0.7, intellect: 1.0 } },
+      { name: "humanist",     weights: { compassion: 2.0, freedom: 1.4, intellect: 1.1, rebellion: 1.0, authority: 0.5, ambition: 0.5, order: 0.8, innovation: 0.9 } },
+      { name: "freedom",      weights: { freedom: 1.9, rebellion: 1.6, compassion: 1.2, intellect: 1.0, authority: 0.4, order: 0.4, ambition: 0.9, innovation: 1.1 } },
+      { name: "power",        weights: { authority: 1.8, ambition: 1.7, order: 1.4, innovation: 1.0, intellect: 0.9, rebellion: 0.6, compassion: 0.5, freedom: 0.5 } },
+      { name: "practical",    weights: { order: 1.7, innovation: 1.4, authority: 1.3, intellect: 1.1, ambition: 1.0, rebellion: 0.6, compassion: 0.8, freedom: 0.7 } },
+      { name: "creative",     weights: { innovation: 1.7, intellect: 1.5, freedom: 1.4, rebellion: 1.3, order: 0.6, authority: 0.6, ambition: 0.8, compassion: 0.9 } }
+    ];
+
+    /* STATE */
+    const S = {
+      cards: [],
+      picks: [],
+      idx: 0,
+      baseStats: null,
+      challengePicks: null
+    };
+
+    /* ==========================================================================
+       UTILITY FUNCTIONS
+       ========================================================================== */
+    function $(sel) {
+      return document.querySelector(sel);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return "";
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
+    function getJSTDayId() {
+      const now = new Date();
+      const jst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+      const y = jst.getFullYear();
+      const m = String(jst.getMonth() + 1).padStart(2, "0");
+      const d = String(jst.getDate()).padStart(2, "0");
+      return `${y}${m}${d}`;
+    }
+
+    function hashSeed(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = Math.imul(31, hash) + str.charCodeAt(i) | 0;
+      }
+      return hash >>> 0;
+    }
+
+    function createPRNG(seed) {
+      let s = seed >>> 0;
+      return function() {
+        s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+        return s / 4294967296;
+      };
+    }
+
+    function makeCode() {
+      const dayId = getJSTDayId();
+      const pickBits = S.picks.join("");
+      return btoa(`${dayId}:${pickBits}`).replace(/=/g, "");
+    }
+
+    function checkChallengeParam() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const challenge = urlParams.get('challenge');
+      if (challenge) {
+        try {
+          const decoded = atob(challenge);
+          const [cDayId, cPicksStr] = decoded.split(':');
+          if (cDayId === getJSTDayId() && cPicksStr && cPicksStr.length === 7) {
+            S.challengePicks = cPicksStr.split('').map(Number);
+            $("#challengeBadge").style.display = "block";
+          }
+        } catch (e) {
+          console.warn("Invalid challenge param:", e);
+        }
+      }
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      const target = $(`#${id}`);
+      if (target) target.classList.add("active");
+    }
+
+    function topTrait() {
+      const counts = {};
+      S.cards.forEach((card, i) => {
+        const chosenTrait = S.picks[i] === 0 ? card.traitA : card.traitB;
+        counts[chosenTrait] = (counts[chosenTrait] || 0) + 1;
+      });
+
+      let maxTrait = "rebellion";
+      let maxVal = -1;
+      for (const [trait, val] of Object.entries(counts)) {
+        if (val > maxVal) {
+          maxVal = val;
+          maxTrait = trait;
+        }
+      }
+      return maxTrait;
+    }
+
+    /* ==========================================================================
+       DETERMINISTIC 100 AI ENGINE
+       ========================================================================== */
+    function generateAISeedStats(dayId, todayCards) {
+      const prng = createPRNG(hashSeed(dayId));
+      const cardStats = {};
+
+      todayCards.forEach(card => {
+        cardStats[card.id] = {
+          personA: card.a,
+          personB: card.b,
+          votesA: 0,
+          votesB: 0
+        };
+      });
+
+      const archetypeCounts = {
+        "THE REBEL": 0, "THE VISIONARY": 0, "THE STRATEGIST": 0, "THE HUMANIST": 0,
+        "THE BUILDER": 0, "THE LIBERATOR": 0, "THE CONQUEROR": 0, "THE ARCHITECT": 0
+      };
+
+      for (let i = 0; i < 100; i++) {
+        const persona = AI_PERSONAS[i % AI_PERSONAS.length];
+        const traitScores = {};
+
+        todayCards.forEach(card => {
+          const wA = persona.weights[card.traitA] || 1.0;
+          const wB = persona.weights[card.traitB] || 1.0;
+          const probA = wA / (wA + wB);
+          const choseA = prng() < probA;
+
+          if (choseA) {
+            cardStats[card.id].votesA++;
+            traitScores[card.traitA] = (traitScores[card.traitA] || 0) + 1;
+          } else {
+            cardStats[card.id].votesB++;
+            traitScores[card.traitB] = (traitScores[card.traitB] || 0) + 1;
+          }
+        });
+
+        let maxTrait = "rebellion";
+        let maxVal = -1;
+        for (const [t, sc] of Object.entries(traitScores)) {
+          if (sc > maxVal) {
+            maxVal = sc;
+            maxTrait = t;
+          }
+        }
+        const archName = TRAIT_TO_ARCH[maxTrait];
+        archetypeCounts[archName] = (archetypeCounts[archName] || 0) + 1;
+      }
+
+      return {
+        day_id: dayId,
+        ai_seed_count: 100,
+        real_player_count: 0,
+        total_player_count: 100,
+        cards: cardStats,
+        archetypes: archetypeCounts
+      };
+    }
+
+    /* ==========================================================================
+       SUPABASE & STORAGE DATA FLOW
+       ========================================================================== */
+    function hasSubmittedToday(dayId) {
+      return localStorage.getItem(`hm_sub_${dayId}`) === "true";
+    }
+
+    function markSubmittedToday(dayId) {
+      localStorage.setItem(`hm_sub_${dayId}`, "true");
+    }
+
+    async function fetchOrCreateDailyStats(dayId, todayCards) {
+      if (!supabase) {
+        return generateAISeedStats(dayId, todayCards);
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('daily_stats')
+          .select('stats_json')
+          .eq('day_id', dayId)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.warn("Supabase fetch error, fallback to local AI seed:", error);
+          return generateAISeedStats(dayId, todayCards);
+        }
+
+        if (data && data.stats_json) {
+          return data.stats_json;
+        }
+
+        const initialStats = generateAISeedStats(dayId, todayCards);
+        return initialStats;
+      } catch (e) {
+        console.warn("Stats API failed, using AI seed fallback:", e);
+        return generateAISeedStats(dayId, todayCards);
+      }
+    }
+
+    async function recordPlayerResult(dayId, playerPicks, traitKey, baseStats) {
+      if (!supabase || hasSubmittedToday(dayId)) return;
+
+      const initialSeedData = baseStats || generateAISeedStats(dayId, S.cards);
+      const cardIds = S.cards.map(c => c.id);
+
+      try {
+        const { data, error } = await supabase.rpc('record_player_result', {
+          p_day_id: dayId,
+          p_card_ids: cardIds,
+          p_picks: playerPicks,
+          p_trait_key: traitKey,
+          p_initial_stats: initialSeedData
+        });
+
+        if (error) {
+          console.warn("RPC update failed:", error);
+        } else {
+          markSubmittedToday(dayId);
+        }
+      } catch (e) {
+        console.warn("RPC Exception:", e);
+      }
+    }
+
+    /* ==========================================================================
+       VIRAL SHARE TEXT ENGINE
+       ========================================================================== */
+    function buildViralShareText(playerPicks, cardsData, baseStats, shareUrl) {
+      const traitKey = topTrait();
+      const archName = TRAIT_TO_ARCH[traitKey] || "THE REBEL";
+
+      let majorityCount = 0;
+      let rarestPersonName = "";
+      let rarestPct = 101;
+
+      playerPicks.forEach((pickIndex, idx) => {
+        const card = cardsData[idx];
+        const chosenPersonId = pickIndex === 0 ? card.a : card.b;
+        const personName = P[chosenPersonId] ? P[chosenPersonId].name : chosenPersonId;
+
+        let pct = 50;
+        if (baseStats && baseStats.cards && baseStats.cards[card.id]) {
+          const cStat = baseStats.cards[card.id];
+          const totalVotes = cStat.votesA + cStat.votesB;
+          if (totalVotes > 0) {
+            const votes = (chosenPersonId === cStat.personA) ? cStat.votesA : cStat.votesB;
+            pct = Math.round((votes / totalVotes) * 100);
+          }
+        }
+
+        if (pct >= 50) majorityCount++;
+        if (pct < rarestPct) {
+          rarestPct = pct;
+          rarestPersonName = personName;
+        }
+      });
+
+      let archSharePct = 15;
+      if (baseStats && baseStats.total_player_count > 0 && baseStats.archetypes) {
+        const count = baseStats.archetypes[archName] || 0;
+        archSharePct = Math.round((count / baseStats.total_player_count) * 100);
+      }
+
+      let line1 = "";
+      let line2 = "";
+
+      if (majorityCount === 0 && baseStats) {
+        line1 = "0/7 matched the crowd.";
+        line2 = "Apparently I have my own timeline.";
+      }
+      else if (majorityCount === 7 && baseStats) {
+        line1 = "7/7 matched the crowd.";
+        line2 = "I am apparently the algorithm.";
+      }
+      else if (rarestPct < 30 && rarestPersonName) {
+        line1 = `${rarestPct}% chose ${rarestPersonName}.`;
+        line2 = "Apparently I picked the unpopular one.";
+      }
+      else if (archSharePct < 10 && baseStats) {
+        line1 = `Only ${archSharePct}% got ${archName}.`;
+        line2 = "Guess I'm not very good at fitting in.";
+      }
+      else {
+        if (baseStats) {
+          line1 = `${majorityCount}/7 matched the crowd.`;
+          line2 = "I'll take that.";
+        } else {
+          line1 = "My historical alignment:";
+          line2 = "";
+        }
+      }
+
+      const textBody = line2 ? `${line1}\n${line2}\n\n${archName}` : `${line1}\n\n${archName}`;
+      return `${textBody}\n\n${shareUrl}`;
+    }
+
+    /* ==========================================================================
+       GAME FLOW & UI LOGIC
+       ========================================================================== */
+    function initTodayCards() {
+      const dayId = getJSTDayId();
+      const prng = createPRNG(hashSeed(dayId));
+      const shuffled = [...cardsData].sort(() => prng() - 0.5);
+      S.cards = shuffled.slice(0, 7);
+      S.picks = [];
+      S.idx = 0;
+      S.baseStats = null;
+    }
+
+    function renderMatch() {
+      if (S.idx >= 7) {
+        finish();
+        return;
+      }
+
+      const card = S.cards[S.idx];
+      const pA = P[card.a];
+      const pB = P[card.b];
+
+      $("#gameProgress").textContent = `MATCH ${S.idx + 1} / 7`;
+      $("#nameA").textContent = pA ? pA.name : card.a;
+      $("#descA").textContent = pA ? pA.desc : "";
+      $("#nameB").textContent = pB ? pB.name : card.b;
+      $("#descB").textContent = pB ? pB.desc : "";
+    }
+
+    function pick(optionIndex) {
+      S.picks.push(optionIndex);
+      S.idx++;
+      renderMatch();
+    }
+
+    async function finish() {
+      showScreen("scrResult");
+      $("#worldStatsDisplay").innerHTML = `<div class="stats-unavailable">CALCULATING WORLD STATS...</div>`;
+
+      const dayId = getJSTDayId();
+      const traitKey = topTrait();
+      const archName = TRAIT_TO_ARCH[traitKey] || "THE REBEL";
+
+      const baseStats = await fetchOrCreateDailyStats(dayId, S.cards);
+      S.baseStats = baseStats;
+
+      let majorityMatchCount = 0;
+      let rarestPersonName = "";
+      let rarestPct = 101;
+
+      S.picks.forEach((pickIndex, cardIdx) => {
+        const card = S.cards[cardIdx];
+        const chosenPersonId = pickIndex === 0 ? card.a : card.b;
+        const personName = P[chosenPersonId] ? P[chosenPersonId].name : chosenPersonId;
+
+        let pct = 50;
+        if (baseStats && baseStats.cards && baseStats.cards[card.id]) {
+          const cStat = baseStats.cards[card.id];
+          const totalVotes = cStat.votesA + cStat.votesB;
+          if (totalVotes > 0) {
+            const votes = (chosenPersonId === cStat.personA) ? cStat.votesA : cStat.votesB;
+            pct = Math.round((votes / totalVotes) * 100);
+          }
+        }
+
+        if (pct >= 50) majorityMatchCount++;
+        if (pct < rarestPct) {
+          rarestPct = pct;
+          rarestPersonName = personName;
+        }
+      });
+
+      let archPct = 15;
+      if (baseStats && baseStats.total_player_count > 0 && baseStats.archetypes) {
+        const count = baseStats.archetypes[archName] || 0;
+        archPct = Math.round((count / baseStats.total_player_count) * 100);
+      }
+
+      let friendChallengeHTML = "";
+      if (S.challengePicks && S.challengePicks.length === 7) {
+        let friendMatches = 0;
+        S.picks.forEach((p, idx) => {
+          if (p === S.challengePicks[idx]) friendMatches++;
+        });
+        friendChallengeHTML = `
+          <div class="stat-row" style="color: var(--accent); font-weight: 700;">
+            <span>Friend Match</span>
+            <strong>${friendMatches}/7 Choice Match</strong>
+          </div>
+        `;
+      }
+
+      $("#resArch").textContent = archName;
+
+      const statsContainer = $("#worldStatsDisplay");
+      if (baseStats) {
+        statsContainer.innerHTML = `
+          ${friendChallengeHTML}
+          <div class="stat-row">
+            <span>Archetype Share</span>
+            <strong>${archPct}% of players</strong>
+          </div>
+          <div class="stat-row">
+            <span>Crowd Alignment</span>
+            <strong>${majorityMatchCount}/7 matched</strong>
+          </div>
+          <div class="rarest-box">
+            <div class="rarest-title">Your Rarest Pick</div>
+            <div class="rarest-value">${escapeHTML(rarestPersonName)} — ${rarestPct}%</div>
+          </div>
+        `;
+      } else {
+        statsContainer.innerHTML = `<div class="stats-unavailable">WORLD STATS UNAVAILABLE</div>`;
+      }
+
+      recordPlayerResult(dayId, S.picks, traitKey, baseStats);
+    }
+
+    /* ==========================================================================
+       EVENT BINDINGS & INITIALIZATION
+       ========================================================================== */
+    window.addEventListener("DOMContentLoaded", () => {
+      initTodayCards();
+      checkChallengeParam();
+
+      $("#bStart").onclick = () => {
+        showScreen("scrGame");
+        renderMatch();
+      };
+
+      $("#cardA").onclick = () => pick(0);
+      $("#cardB").onclick = () => pick(1);
+
+      $("#bShare").onclick = () => {
+        const code = makeCode();
+        const baseUrl = location.origin + location.pathname;
+        const shareUrl = `${baseUrl}?challenge=${code}`;
+
+        const shareText = buildViralShareText(S.picks, S.cards, S.baseStats, shareUrl);
+        const xIntent = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        window.open(xIntent, "_blank", "noopener,noreferrer");
+      };
+
+      $("#bRetry").onclick = () => {
+        initTodayCards();
+        showScreen("scrGame");
+        renderMatch();
+      };
+    });
+  </script>
+</body>
+</html>
